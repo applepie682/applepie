@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>픽셀 이미지 생성기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background: #f4f4f9;
+            color: #333;
+        }
+        header {
+            background: #6c5ce7;
+            color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        header p {
+            margin: 5px 0 0;
+            font-size: 16px;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        canvas {
+            display: block;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            max-width: 100%;
+            height: auto;
+        }
+        input[type="file"], input[type="range"], button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        input[type="range"] {
+            width: 200px;
+        }
+        footer {
+            margin-top: 20px;
+            padding: 10px;
+            background: #dfe6e9;
+        }
+        footer p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        footer a {
+            color: #0984e3;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>픽셀 이미지 생성기</h1>
+        <p>이미지를 픽셀로 변환하고 저장하세요!</p>
+    </header>
+
+    <div id="controls">
+        <input type="file" id="imageUploader" accept="image/*" />
+        <label for="pixelation">픽셀 단계:</label>
+        <input type="range" id="pixelation" min="1" max="50" value="10" />
+        <button id="downloadButton">이미지 다운로드</button>
+        <img id="preview" style="max-width: 300px; margin-top: 20px;" alt="이미지 미리보기" />
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <footer>
+        <p>&copy; 2024. Made by 당신의 이름</p>
+        <a href="https://blog.naver.com/your_blog" target="_blank">네이버 블로그 방문하기</a>
+    </footer>
+
+    <script>
+        (function() {
+            const imageUploader = document.getElementById('imageUploader');
+            const pixelation = document.getElementById('pixelation');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const downloadButton = document.getElementById('downloadButton');
+            const preview = document.getElementById('preview');
+            let img = new Image();
+
+            // 파일 업로드 이벤트 처리
+            imageUploader.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        img.src = reader.result;
+                        preview.src = reader.result; // 미리보기 업데이트
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // 이미지 로드 완료 후 캔버스에 그리기
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                applyPixelation();
+            };
+
+            // 픽셀화 적용
+            pixelation.addEventListener('input', applyPixelation);
+
+            function applyPixelation() {
+                if (!img.src) return;
+
+                const pixelSize = parseInt(pixelation.value, 10);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+
+                for (let y = 0; y < canvas.height; y += pixelSize) {
+                    for (let x = 0; x < canvas.width; x += pixelSize) {
+                        const i = (y * canvas.width + x) * 4;
+                        const red = data[i];
+                        const green = data[i + 1];
+                        const blue = data[i + 2];
+
+                        for (let dy = 0; dy < pixelSize; dy++) {
+                            for (let dx = 0; dx < pixelSize; dx++) {
+                                const j = ((y + dy) * canvas.width + (x + dx)) * 4;
+                                if (j < data.length) {
+                                    data[j] = red;
+                                    data[j + 1] = green;
+                                    data[j + 2] = blue;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+            }
+
+            // 다운로드 버튼 기능
+            downloadButton.addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.download = 'pixelated-image.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        })();
+    </script>
+</body>
+</html>
